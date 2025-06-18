@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>輸入表單系統</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="static/js/config.js"></script>
+</head>
+
+<body class="dark bg-dark-bg text-dark-text min-h-screen">
+<div id="app">
+    <div class="container mx-auto p-6">
+        <!-- 群組標題 -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-dark-text">輸入表單系統</h1>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-dark-text">群組:</label>
+                    <select v-model="currentGroupId" @change="switchGroup"
+                        class="bg-dark-card border border-dark-border rounded-md px-3 py-2 text-dark-text">
+                        <option v-for="group in groups" :key="group.id" :value="group.id">{{ group.name }}</option>
+                    </select>
+                </div>
+                <button @click="showNewGroupModal = true"
+                    class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">新增群組</button>
+                <button v-if="groups.length > 1" @click="deleteCurrentGroup"
+                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">刪除群組</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左側表單 -->
+            <div class="bg-dark-card border border-dark-border rounded-lg">
+                <div class="p-6 border-b border-dark-border">
+                    <h2 class="text-xl font-semibold text-dark-text">資料輸入區 - {{ currentGroup.name }}</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-dark-text block">資料標題</label>
+                        <input v-model="formTitle" type="text" placeholder="請輸入標題"
+                            class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
+                    </div>
+
+                    <!-- 項目 1~4 -->
+                    <div v-for="i in 4" :key="i" class="space-y-2">
+                        <label :for="'item' + i" class="text-sm font-medium text-dark-text block">項目 {{ i }}</label>
+                        <input :id="'item' + i" v-model="formData['item' + i]" type="text"
+                            :placeholder="'請輸入項目 ' + i"
+                            class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
+                    </div>
+
+                    <!-- 項目 5: Tag 輸入 -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-dark-text block">項目 5</label>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="(tag, index) in formData.item5" :key="index"
+                                class="flex items-center bg-blue-600 text-white px-3 py-1 rounded-full">
+                                {{ tag }}
+                                <button @click="removeItem5Tag(index)" class="ml-2">&times;</button>
+                            </span>
+                        </div>
+                        <input v-model="item5Input" @keyup.enter="addItem5Tag" type="text" placeholder="輸入後按 Enter"
+                            class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
+                    </div>
+
+                    <!-- 項目 6~15 -->
+                    <div v-for="i in 10" :key="i+5" class="space-y-2">
+                        <label :for="'item' + (i+5)" class="text-sm font-medium text-dark-text block">
+                            項目 {{ i+5 }}
+                        </label>
+                        <input :id="'item' + (i+5)" v-model="formData['item' + (i+5)]" type="text"
+                            :placeholder="'請輸入項目 ' + (i+5)"
+                            class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
+                    </div>
+
+                    <div class="pt-6 space-y-3">
+                        <button @click="handleSubmit"
+                            class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700">確認</button>
+                        <button @click="clearForm"
+                            class="w-full bg-gray-600 text-white py-2 rounded-md hover:bg-gray-700">清空表單</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側已提交資料 -->
+            <div class="bg-dark-card border border-dark-border rounded-lg">
+                <div class="p-6 border-b border-dark-border flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-dark-text">
+                        {{ currentGroup.name }} - 已提交資料 ({{ currentSubmittedData.length }} 組)
+                    </h2>
+                    <button v-if="currentSubmittedData.length > 0" @click="clearHistory"
+                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">清空記錄</button>
+                </div>
+
+                <div class="p-6 max-h-[600px] overflow-y-auto">
+                    <div v-if="currentSubmittedData.length === 0" class="text-center text-dark-muted py-8">
+                        尚無提交資料
+                    </div>
+
+                    <!-- 拖曳排序 -->
+                    <draggable v-model="currentGroup.submittedData" item-key="timestamp" animation="200" class="space-y-4" @end="onDragEnd">
+                        <template #item="{ element, index }">
+                            <div class="bg-dark-bg rounded-lg border border-dark-border cursor-pointer">
+                                <div @click="toggleDetails(index)" class="flex justify-between items-center p-4">
+                                    <h3 class="text-lg font-medium text-dark-text">
+                                        {{ element.title || `第 ${index + 1} 組資料` }}
+                                    </h3>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xs text-dark-muted">{{ element.timestamp }}</span>
+                                        <button @click.stop="deleteRecord(index)"
+                                            class="text-red-400 hover:text-red-300 text-xs">刪除</button>
+                                    </div>
+                                </div>
+
+                                <div v-if="activeIndex === index" class="p-4 border-t border-dark-border">
+                                    <div class="grid grid-cols-1 gap-2">
+                                        <div v-for="i in 15" :key="i" class="flex items-center space-x-3">
+                                            <span class="text-sm font-medium text-dark-muted min-w-[60px]">項目 {{ i }}:</span>
+                                            <span class="text-sm text-dark-text bg-dark-card px-3 py-1 rounded border border-dark-border flex-1">
+                                                <template v-if="i === 5">
+                                                    {{ element.item5.length > 0 ? element.item5.join(', ') : '未填寫' }}
+                                                </template>
+                                                <template v-else>
+                                                    {{ element['item' + i] || '未填寫' }}
+                                                </template>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </draggable>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增群組 -->
+    <div v-if="showNewGroupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-dark-card border border-dark-border rounded-lg p-6 w-96">
+            <h3 class="text-lg font-semibold text-dark-text mb-4">新增群組</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-dark-text block mb-2">群組名稱</label>
+                    <input v-model="newGroupName" type="text" placeholder="請輸入群組名稱"
+                        class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text"
+                        @keyup.enter="createNewGroup" />
+                </div>
+                <div class="flex space-x-3">
+                    <button @click="createNewGroup" :disabled="!newGroupName.trim()"
+                        class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed">建立</button>
+                    <button @click="cancelNewGroup"
+                        class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="static/js/main.js"></script>
+</body>
+</html>
