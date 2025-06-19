@@ -3,12 +3,29 @@ const app = Vue.createApp({
         return {
             formTitle: '',
             formData: {},
-            item5Input: '',
+            tagInput: {},  
             groups: [],
             currentGroupId: null,
             activeIndex: null,
             showNewGroupModal: false,
-            newGroupName: ''
+            newGroupName: '',
+            fieldNames: [
+                { key: 'item1', label: '作業場別', type: 'select', options: ['F1', 'F3', 'F5']},
+                { key: 'item2', label: 'Operation(選填，EX: 3390)', type: 'input'},
+                { key: 'item3', label: '客戶碼', type: 'input'},
+                { key: 'item4', label: 'mcid(選填‧，ex: 3390-A52)', type: 'input'},
+                { key: 'item5', label: '項目 5', type: 'tags'},
+                { key: 'item6', label: '項目 6', type: 'input'},
+                { key: 'item7', label: '項目 7', type: 'input'},
+                { key: 'item8', label: '項目 8', type: 'input'},
+                { key: 'item9', label: '項目 9', type: 'input'},
+                { key: 'item10', label: '項目 10', type: 'input'},
+                { key: 'item11', label: '項目 11', type: 'input'},
+                { key: 'item12', label: '項目 12', type: 'input'},
+                { key: 'item13', label: '項目 13', type: 'input'},
+                { key: 'item14', label: '項目 14', type: 'input'},
+                { key: 'item15', label: '項目 15', type: 'input'},
+            ]
         }
     },
     computed: {
@@ -31,11 +48,12 @@ const app = Vue.createApp({
     },
     methods: {
         initializeForm() {
-            for (let i = 1; i <= 15; i++) {
-                if (i === 5) {
-                    this.formData['item5'] = []
+            for (const field of this.fieldNames) {
+                if (field.type === 'tags') {
+                    this.formData[field.key] = [];
+                    this.tagInput[field.key] = '';
                 } else {
-                    this.formData['item' + i] = ''
+                    this.formData[field.key] = '';
                 }
             }
         },
@@ -136,16 +154,16 @@ const app = Vue.createApp({
                 }
             }
         },
-        addItem5Tag() {
-            const value = this.item5Input.trim()
-            if (value && !this.formData.item5.includes(value)) {
-                this.formData.item5.push(value)
+        addTag(fieldKey) {
+            const value = this.tagInput[fieldKey].trim();
+            if (value && !this.formData[fieldKey].includes(value)) {
+                this.formData[fieldKey].push(value);
             }
-            this.item5Input = ''
+            this.tagInput[fieldKey] = '';
         },
 
-        removeItem5Tag(index) {
-            this.formData.item5.splice(index, 1)
+        removeTag(fieldKey, index) {
+            this.formData[fieldKey].splice(index, 1);
         },
 
         onDragEnd(){
