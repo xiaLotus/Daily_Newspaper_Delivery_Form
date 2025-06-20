@@ -136,23 +136,22 @@ const app = Vue.createApp({
             this.activeIndex = this.activeIndex === index ? null : index
         },
         saveToStorage() {
-            localStorage.setItem('formGroups', JSON.stringify(this.groups))
-            localStorage.setItem('currentGroupId', this.currentGroupId)
             this.saveToBackend();
         },
         loadFromStorage() {
-            const storedGroups = localStorage.getItem('formGroups')
-            const storedCurrentGroupId = localStorage.getItem('currentGroupId')
-            if (storedGroups) {
-                this.groups = JSON.parse(storedGroups)
-            }
-            if (this.groups.length > 0) {
-                if (storedCurrentGroupId && this.groups.some(g => g.id == storedCurrentGroupId)) {
-                    this.currentGroupId = parseInt(storedCurrentGroupId)
-                } else {
-                    this.currentGroupId = this.groups[0].id
+            fetch('http://127.0.0.1:5000/load', {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.groups) {
+                    this.groups = data.groups;
+                    if (this.groups.length > 0) {
+                        this.currentGroupId = this.groups[0].id;
+                    }
                 }
-            }
+            })
+            .catch(err => console.error('讀取失敗', err));
         },
         addTag(fieldKey) {
             const value = this.tagInput[fieldKey].trim();
