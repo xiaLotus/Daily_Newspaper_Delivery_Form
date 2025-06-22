@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>輸入表單系統</title>
+    <title>TraceIn/TraceOut 派報系統</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.js"></script>
@@ -11,12 +11,13 @@
     <script src="static/js/config.js"></script>
 </head>
 
-<body class="dark bg-dark-bg text-dark-text min-h-screen">
+
+<body class="dark bg-dark-bg text-dark-text">
 <div id="app">
-    <div class="container mx-auto p-6">
+    <div class="container mx-auto p-6 h-full flex flex-col">
         <!-- 群組標題 -->
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-dark-text">輸入表單系統</h1>
+            <h1 class="text-3xl font-bold text-dark-text">TraceIn/TraceOut 派報系統</h1>
             <div class="flex items-center space-x-4">
                 <div class="flex items-center space-x-2">
                     <label class="text-sm font-medium text-dark-text">群組:</label>
@@ -32,9 +33,9 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <!-- 左側表單 -->
-            <div class="bg-dark-card border border-dark-border rounded-lg">
+            <div ref="leftForm" class="bg-dark-card border border-dark-border rounded-lg">
                 <div class="p-6 border-b border-dark-border">
                     <h2 class="text-xl font-semibold text-dark-text">資料輸入區 - {{ currentGroup.name }}</h2>
                 </div>
@@ -55,10 +56,11 @@
                         <template v-if="field.type === 'select'">
                             <select v-model="formData[field.key]"
                                 class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
-                                <option disabled value="">請選擇 {{ field.label }}</option>
+                                <option disabled value="">請選擇 {{ field.label }}: {{ field.options.join(' / ') }}</option>
                                 <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
                             </select>
                         </template>
+
 
                         <!-- Tags -->
                         <template v-else-if="field.type === 'tags'">
@@ -69,7 +71,7 @@
                                     <button @click="removeTag(field.key, index)" class="ml-2">&times;</button>
                                 </span>
                             </div>
-                            <input v-model="tagInput[field.key]" @keyup.enter="addTag(field.key)" type="text" placeholder="輸入後按 Enter"
+                            <input v-model="tagInput[field.key]" @keyup.enter="addTag(field.key)" type="text" placeholder="輸入後按 Enter 進入儲存空間"
                                 class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-md text-dark-text">
                         </template>
 
@@ -94,7 +96,7 @@
 
 
             <!-- 右側已提交資料 -->
-            <div class="bg-dark-card border border-dark-border rounded-lg">
+            <div class="bg-dark-card border border-dark-border rounded-lg flex flex-col h-full">
                 <div class="p-6 border-b border-dark-border flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-dark-text">
                         {{ currentGroup.name }} - 已提交資料 ({{ currentSubmittedData.length }} 組)
@@ -103,7 +105,7 @@
                         class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">清空記錄</button>
                 </div>
 
-                <div class="p-6 max-h-[600px] overflow-y-auto">
+                <div class="p-6 overflow-y-auto" :style="{ maxHeight: rightMaxHeight + 'px' }">
                     <div v-if="currentSubmittedData.length === 0" class="text-center text-dark-muted py-8">
                         尚無提交資料
                     </div>
